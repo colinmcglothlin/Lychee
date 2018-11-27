@@ -474,6 +474,24 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "colinmcglothlin",
+      "name": "colinmcglothlin",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/33700226?v=4",
+      "profile": "https://github.com/colinmcglothlin",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "bennettscience",
+      "name": "Brian",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/3878010?v=4",
+      "profile": "https://github.com/bennettscience",
+      "contributions": [
+        "code"
+      ]
     }
   ]
 }

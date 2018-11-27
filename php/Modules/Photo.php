@@ -284,12 +284,12 @@ final class Photo {
 
 		if(!in_array($file['type'], self::$validVideoTypes, true)){
 			$values = array(LYCHEE_TABLE_PHOTOS, $id, $info['title'], $photo_name, $info['description'], $info['tags'], $info['type'], $info['width'], $info['height'], $info['size'], $info['iso'],
-			$info['aperture'], $info['make'], $info['model'], $info['shutter'], $info['focal'], $info['takestamp'], $path_thumb, $albumID, $public, $star, $checksum, $medium, $small);
-			$query  = Database::prepare(Database::get(), "INSERT INTO ? (id, title, url, description, tags, type, width, height, size, iso, aperture, make, model, shutter, focal, takestamp, thumbUrl, album, public, star, checksum, medium, small) VALUES ('?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?')", $values);
+			$info['aperture'], $info['make'], $info['model'], $info['lens'], $info['shutter'], $info['focal'], $info['takestamp'], $path_thumb, $albumID, $public, $star, $checksum, $medium, $small, $info['license']);
+			$query  = Database::prepare(Database::get(), "INSERT INTO ? (id, title, url, description, tags, type, width, height, size, iso, aperture, make, model, lens, shutter, focal, takestamp, thumbUrl, album, public, star, checksum, medium, small, license) VALUES ('?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?', '?')", $values);
 			$result = Database::execute(Database::get(), $query, __METHOD__, __LINE__);
 		} else {
             $values = array(LYCHEE_TABLE_PHOTOS, $id, $info['title'], $photo_name, $file['type'], $info['size'], time(),  $path_thumb, $albumID, $public, $star, $checksum, $medium, $small);
-            $query  = Database::prepare(Database::get(), "INSERT INTO ? (id, title, url, description, tags, type, width, height, size, iso, aperture, make, model, shutter, focal, takestamp, thumbUrl, album, public, star, checksum, medium, small) VALUES ('?', '?', '?', '', '', '?', 0, 0, '?', '', '', '', '', '', '', '?', '?', '?', '?', '?', '?', '?', '?')", $values);
+            $query  = Database::prepare(Database::get(), "INSERT INTO ? (id, title, url, description, tags, type, width, height, size, iso, aperture, make, model, lens, shutter, focal, takestamp, thumbUrl, album, public, star, checksum, medium, small) VALUES ('?', '?', '?', '', '', '?', 0, 0, '?', '', '', '', '', '', '', '', '?', '?', '?', '?', '?', '?', '?', '?')", $values);
             $result = Database::execute(Database::get(), $query, __METHOD__, __LINE__);
         }
 
@@ -774,15 +774,24 @@ final class Photo {
 		$photo = null;
 
 		// Set unchanged attributes
-		$photo['id']     = $data['id'];
-		$photo['title']  = $data['title'];
-		$photo['tags']   = $data['tags'];
-		$photo['public'] = $data['public'];
-		$photo['star']   = $data['star'];
-		$photo['album']  = $data['album'];
-		$photo['type']   = $data['type'];
-		$photo['width']  = $data['width'];
-		$photo['height'] = $data['height'];
+		$photo['id']     		= $data['id'];
+		$photo['title']  		= $data['title'];
+		$photo['description']  	= $data['description'];
+		$photo['license']		= $data['license'];
+		$photo['tags']   		= $data['tags'];
+		$photo['public'] 		= $data['public'];
+		$photo['star']   		= $data['star'];
+		$photo['album']  		= $data['album'];
+		$photo['type']   		= $data['type'];
+		$photo['width']  		= $data['width'];
+		$photo['height'] 		= $data['height'];
+		$photo['shutter'] 		= $data['shutter'];
+		$photo['make'] 			= $data['make'];
+		$photo['model']			= $data['model'];
+		$photo['iso'] 			= $data['iso'];
+		$photo['aperture'] 		= $data['aperture'];
+		$photo['focal'] 		= $data['focal'];
+		$photo['lens']   		= isset($data['lens']) ? $data['lens'] : ''; // isset should not be needed
 
 		// Parse medium
 		if ($data['medium']==='1') $photo['medium'] = LYCHEE_URL_UPLOADS_MEDIUM . $data['url'];
@@ -797,17 +806,19 @@ final class Photo {
 		$photo['url']      = LYCHEE_URL_UPLOADS_BIG . $data['url'];
 
 		// Use takestamp as sysdate when possible
-		if (isset($data['takestamp'])&&$data['takestamp']!=='0') {
+		if (isset($data['takestamp']) && $data['takestamp'] > 0) {
 
 			// Use takestamp
 			$photo['cameraDate'] = '1';
-			$photo['sysdate']    = strftime('%d %B %Y', $data['takestamp']);
+			$photo['sysdate']    = strftime('%d %B %Y', substr($data['id'], 0, -4));
+			$photo['takedate']    = strftime('%d %B %Y', $data['takestamp']);
 
 		} else {
 
 			// Use sysstamp from the id
 			$photo['cameraDate'] = '0';
 			$photo['sysdate']    = strftime('%d %B %Y', substr($data['id'], 0, -4));
+			$photo['takedate']   = '';
 
 		}
 
@@ -844,17 +855,20 @@ final class Photo {
 			return false;
 		}
 
+		$photo = Photo::prepareData($photo);
+
 		// Parse photo
-		$photo['sysdate'] = strftime('%d %b. %Y', substr($photo['id'], 0, -4));
-		if (strlen($photo['takestamp'])>1) $photo['takedate'] = strftime('%d %b. %Y', $photo['takestamp']);
+		// $photo['sysdate'] = strftime('%d %b. %Y', substr($photo['id'], 0, -4));
+		// if (strlen($photo['takestamp'])>1) $photo['takedate'] = strftime('%d %b. %Y', $photo['takestamp']);
+		// if ($photo['takestamp']>1) $photo['takedate'] = strftime('%d %b. %Y', $photo['takestamp']);
 
 		// Parse medium
-		if ($photo['medium']==='1') $photo['medium'] = LYCHEE_URL_UPLOADS_MEDIUM . $photo['url'];
-		else                        $photo['medium'] = '';
+		// if ($photo['medium']==='1') $photo['medium'] = LYCHEE_URL_UPLOADS_MEDIUM . $photo['url'];
+		// else                        $photo['medium'] = '';
 
 		// Parse paths
-		$photo['url']      = LYCHEE_URL_UPLOADS_BIG . $photo['url'];
-		$photo['thumbUrl'] = LYCHEE_URL_UPLOADS_THUMB . $photo['thumbUrl'];
+		// $photo['url']      = LYCHEE_URL_UPLOADS_BIG . $photo['url'];
+		// $photo['thumbUrl'] = LYCHEE_URL_UPLOADS_THUMB . $photo['thumbUrl'];
 
 		if ($albumID!='false') {
 
@@ -932,6 +946,7 @@ final class Photo {
 		$return['latitude']    = '';
 		$return['longitude']   = '';
 		$return['altitude']    = '';
+		$return['license']		 = '';
 
 		// Size
 		$size = filesize($url)/1024;
@@ -1009,8 +1024,10 @@ final class Photo {
 			// Takestamp
 			if (!empty($exif['DateTimeOriginal'])) $return['takestamp'] = strtotime($exif['DateTimeOriginal']);
 
+			if (!empty($exif['LensInfo'])) $return['lens'] = trim($exif['LensInfo']);
+
 			// Lens field from Lightroom
-			if (!empty($exif['UndefinedTag:0xA434'])) $return['lens'] = trim($exif['UndefinedTag:0xA434']);
+			if ($return['lens'] == '' && !empty($exif['UndefinedTag:0xA434'])) $return['lens'] = trim($exif['UndefinedTag:0xA434']);
 
 			// Deal with GPS coordinates
 			if (!empty($exif['GPSLatitude']) && !empty($exif['GPSLatitudeRef'])) $return['latitude'] = getGPSCoordinate($exif['GPSLatitude'], $exif['GPSLatitudeRef']);
@@ -1124,6 +1141,49 @@ final class Photo {
 
 		// Set description
 		$query  = Database::prepare(Database::get(), "UPDATE ? SET description = '?' WHERE id IN ('?')", array(LYCHEE_TABLE_PHOTOS, $description, $this->photoIDs));
+		$result = Database::execute(Database::get(), $query, __METHOD__, __LINE__);
+
+		// Call plugins
+		Plugins::get()->activate(__METHOD__, 1, func_get_args());
+
+		if ($result===false) return false;
+		return true;
+
+	}
+
+	/**
+	 * Sets the license of a photo.
+	 * @return boolean Returns true when successful.
+	 */
+	public function setLicense($license) {
+
+		// Check dependencies
+		Validator::required(isset($this->photoIDs), __METHOD__);
+
+		// Call plugins
+		Plugins::get()->activate(__METHOD__, 0, func_get_args());
+
+		// Validate the license submitted
+		$licenses = [ '', 'CC0', 'CC-BY', 'CC-BY-ND', 'CC-BY-SA', 'CC-BY-ND', 'CC-BY-NC-ND', 'CC-BY-SA'];
+
+		$found = false;
+		$i = 0;
+
+		while(!$found && $i < count($licenses))
+		{
+			if ($licenses[$i] == $license) $found = true;
+			$i++;
+		}
+
+		if(!$found)
+		{
+			// Log the error
+			Log::error(Database::get(), __METHOD__, __LINE__, 'Could not find specified license');
+			return false;
+		}
+
+		// Set description
+		$query  = Database::prepare(Database::get(), "UPDATE ? SET license = '?' WHERE id IN ('?')", array(LYCHEE_TABLE_PHOTOS, $license, $this->photoIDs));
 		$result = Database::execute(Database::get(), $query, __METHOD__, __LINE__);
 
 		// Call plugins
@@ -1372,7 +1432,7 @@ final class Photo {
 
 			// Duplicate entry
 			$values = array(LYCHEE_TABLE_PHOTOS, $id, LYCHEE_TABLE_PHOTOS, $photo->id);
-			$query  = Database::prepare(Database::get(), "INSERT INTO ? (id, title, url, description, tags, type, width, height, size, iso, aperture, make, model, shutter, focal, takestamp, thumbUrl, album, public, star, checksum, medium, small) SELECT '?' AS id, title, url, description, tags, type, width, height, size, iso, aperture, make, model, shutter, focal, takestamp, thumbUrl, album, public, star, checksum, medium, small FROM ? WHERE id = '?'", $values);
+			$query  = Database::prepare(Database::get(), "INSERT INTO ? (id, title, url, description, tags, type, width, height, size, iso, aperture, make, model, lens, shutter, focal, takestamp, thumbUrl, album, public, star, checksum, medium, small, license) SELECT '?' AS id, title, url, description, tags, type, width, height, size, iso, aperture, make, model, lens, shutter, focal, takestamp, thumbUrl, album, public, star, checksum, medium, small, license FROM ? WHERE id = '?'", $values);
 			$result = Database::execute(Database::get(), $query, __METHOD__, __LINE__);
 
 			if ($result===false) $error = true;

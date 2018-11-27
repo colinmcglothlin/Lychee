@@ -33,6 +33,7 @@ final class Admin extends Access {
 			case 'Photo::get':              self::getPhotoAction(); break;
 			case 'Photo::setTitle':         self::setPhotoTitleAction(); break;
 			case 'Photo::setDescription':   self::setPhotoDescriptionAction(); break;
+			case 'Photo::setLicense':				self::setPhotoLicenseAction(); break;
 			case 'Photo::setStar':          self::setPhotoStarAction(); break;
 			case 'Photo::setPublic':        self::setPhotoPublicAction(); break;
 			case 'Photo::setAlbum':         self::setPhotoAlbumAction(); break;
@@ -54,6 +55,7 @@ final class Admin extends Access {
 			case 'Session::logout':         self::logoutAction(); break;
 
 			// Settings functions
+			case 'Settings::setImageOverlay':     self::setImageOverlay(); break;
 			case 'Settings::setLayout':     self::setLayoutAction(); break;
 			case 'Settings::setLang':      	self::setLangAction(); break;
 			case 'Settings::setLogin':      self::setLoginAction(); break;
@@ -170,6 +172,15 @@ final class Admin extends Access {
 
 		$photo = new Photo($_POST['photoID']);
 		Response::json($photo->setDescription($_POST['description']));
+
+	}
+
+	private static function setPhotoLicenseAction() {
+
+		Validator::required(isset($_POST['photoID'], $_POST['license']), __METHOD__);
+
+		$photo = new Photo($_POST['photoID']);
+		Response::json($photo->setLicense($_POST['license']));
 
 	}
 
@@ -314,6 +325,13 @@ final class Admin extends Access {
 		Validator::required(isset($_POST['justified_layout']), __METHOD__);
 
 		Response::json(Settings::setLayout($_POST['justified_layout']));
+	}
+
+	private static function setImageOverlay() {
+
+		Validator::required(isset($_POST['image_overlay']), __METHOD__);
+
+		Response::json(Settings::setImageOverlay($_POST['image_overlay']));
 	}
 
 	private static function setSortingAction() {
